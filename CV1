@@ -1,4 +1,16 @@
 #include "mbed.h"
+#include "Morse.h"
+
+int main() {
+    init();
+    const char text[] = "SOS";
+    blinkMorseText(text);
+    exit();
+}
+
+---------------------------------------------------------------------------------
+
+#include "Morse.h"
 
 #define DOT_LENGTH_MS 300
 #define DASH_LENGTH_MS 1000
@@ -59,8 +71,10 @@ void blinkMorseText(const char *text) {
     ThisThread::sleep_for(std::chrono::milliseconds(SPACE_LENGTH_MS));
 }
 
-int main() {
-    const char text[] = "SOS";
+void init() {
+    led = 0;
+}
 
-        blinkMorseText(text);
+void exit() {
+    ::exit(0);
 }
