@@ -1,0 +1,79 @@
+#include "main.h"
+
+DigitalOut myLed(LED1);
+DigitalIn myButton(PI_11);
+volatile bool button_text = false;
+Mutex mutex; 
+
+void led_thread() {
+    while (true) {
+        myLed = !myLed; 
+        ThisThread::sleep_for(2500ms); 
+    }
+}
+
+void lcd_thread() {
+    BSP_LCD_Init();
+    BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, LCD_FB_START_ADDRESS);
+    BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
+
+    while (true) {
+
+        mutex.lock();  
+        bool button = button_text;
+        mutex.unlock();
+
+        if(!button) {
+        BSP_LCD_Clear(LCD_COLOR_BLACK);
+        BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
+        BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+        BSP_LCD_SetTextColor(LCD_COLOR_DARKBLUE);
+
+        BSP_LCD_DisplayStringAt(0, 1, (uint8_t *)"PRESS", CENTER_MODE);
+        HAL_Delay(2000);
+
+        BSP_LCD_Clear(LCD_COLOR_BLACK);
+        HAL_Delay(2000);
+        } else {
+        BSP_LCD_Clear(LCD_COLOR_BLACK);
+        BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
+        BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+        BSP_LCD_SetTextColor(LCD_COLOR_DARKBLUE);
+        BSP_LCD_DisplayStringAt(0, 100, (uint8_t *)"BUTTON PRESSED", CENTER_MODE);
+        HAL_Delay(2000);
+        }    
+}
+}
+
+void lcd_button(){
+    while (true) {
+        if (myButton) { 
+            mutex.lock();  
+            button_text = true;
+            mutex.unlock();  
+
+            ThisThread::sleep_for(5000ms); 
+        } else {
+            mutex.lock();  
+            button_text = false;
+            mutex.unlock();  
+        }
+        
+        ThisThread::sleep_for(100ms);
+    }
+
+}
+
+int main() {
+    Thread thread1;
+    Thread thread2;
+    Thread thread3;
+
+    thread1.start(led_thread);
+    thread2.start(lcd_thread);
+    thread3.start(lcd_button);
+
+    while (true) {
+        ThisThread::sleep_for(1000ms);
+    }
+}
