@@ -1,0 +1,63 @@
+#include "mbed.h"
+#include "stm32746g_discovery_lcd.h"
+
+DigitalOut myLed(LED1);
+
+// Definice třídy Semafor pro řízení přístupu k parkovacímu místu
+class Semafor {
+public:
+    Semafor(int count = 1) : slot(count) {}
+
+    void acquire() {
+        slot.acquire();
+    }
+
+    void release() {
+        slot.release();
+    }
+
+private:
+    Semaphore slot;
+};
+
+Semafor parkoviste(1); // Inicializace semaforu pro jedno parkovací místo
+
+// Funkce pro reprezentaci chování auta
+void car_function(const char *car_name) {
+    while (true) {
+        parkoviste.acquire(); // Požádání o parkovací místo
+
+        // Nastavení a zobrazení informací na LCD
+        BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
+        BSP_LCD_SetBackColor(LCD_COLOR_WHITE);
+        BSP_LCD_SetTextColor(LCD_COLOR_DARKBLUE);
+        BSP_LCD_DisplayStringAt(0, LINE(5), (uint8_t *)car_name, CENTER_MODE);
+
+        ThisThread::sleep_for(3000ms); // Simulace doby, po kterou auto parkuje
+
+        BSP_LCD_Clear(LCD_COLOR_BLACK); // Vyčištění LCD po odjezdu auta
+
+        parkoviste.release(); // Uvolnění parkovacího místa
+
+        ThisThread::sleep_for(2000ms); // Pauza před dalším pokusem o parkování
+    }
+}
+
+int main() {
+    // Inicializace LCD
+    BSP_LCD_Init();
+    BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, LCD_FB_START_ADDRESS);
+    BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
+    BSP_LCD_Clear(LCD_COLOR_BLACK);
+
+    // Vytvoření a spuštění vláken pro auta
+    Thread car1_thread;
+    Thread car2_thread;
+
+    car1_thread.start(callback(car_function, "CAR 1"));
+    car2_thread.start(callback(car_function, "CAR 2"));
+
+    while (true) {
+        // Hlavní smyčka může být prázdná, veškerá funkčnost je v vláknech
+    }
+}
