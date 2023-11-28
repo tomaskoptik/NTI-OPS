@@ -1,30 +1,40 @@
-#include "main.h"
 #include "mbed.h"
 #include "stm32746g_discovery_lcd.h"
 #include <stack>
 #include <chrono>
+
+using namespace std::chrono;
+
+// Deklarace globálních proměnných
 DigitalOut myLed(LED1);
 Mutex mutexLCD;
 Mutex mutexParking;
 std::stack<int> parkingSpots;
+
+// Inicializace parkovacích míst
 void initParkingSpots(int count) {
     for (int i = 0; i < count; ++i) {
         parkingSpots.push(i);
     }
 }
 
-Semafor::Semafor(int count) : slot(count) {}
+// Deklarace a definice třídy Semafor
+class Semafor {
+public:
+    Semafor(int count = 1) : slot(count) {}
+    void acquire() {
+        slot.acquire();
+    }
+    void release() {
+        slot.release();
+    }
+private:
+    Semaphore slot;
+};
 
-void Semafor::acquire() {
-    slot.acquire();
-}
-
-void Semafor::release() {
-    slot.release();
-}
-
+// Funkce pro správu parkovacích míst
 int acquireParkingSpot() {
-    mutexParking.lock();  // Použijte nový mutex
+    mutexParking.lock(); 
     if (parkingSpots.empty()) {
         mutexParking.unlock();
         return -1; 
@@ -36,50 +46,72 @@ int acquireParkingSpot() {
 }
 
 void releaseParkingSpot(int spot) {
-    mutexParking.lock();  // Použijte nový mutex
+    mutexParking.lock(); 
     parkingSpots.push(spot);
     mutexParking.unlock();
 }
 
-Car::Car(const char *name, int parkingTime, uint32_t bgColor, Semafor &semafor) 
-    : car_name(name), parkTime(parkingTime), backgroundColor(bgColor), parkoviste(semafor) {}
-
-void Car::operate() {
-    while (true) {
-        auto waitTime = milliseconds(rand() % 5000 + 3000);
-        ThisThread::sleep_for(waitTime);
-
-        parkoviste.acquire();
-
-        int parkingSpot = acquireParkingSpot();
-        if (parkingSpot != -1) {
-            mutexLCD.lock();
-            display(car_name, parkingSpot);
-            mutexLCD.unlock();
-
-            ThisThread::sleep_for(parkTime * 1s);
-
-            mutexLCD.lock();
-            clearParkingSpot(parkingSpot);
-            mutexLCD.unlock();
-
-            ThisThread::sleep_for(2s); 
-
-            releaseParkingSpot(parkingSpot);
-        }
-
-        parkoviste.release();
-    }
-}
-
-void Car::display(const char *name, int parkingSpot) {
+void clearParkingSpot(int parkingSpot) {
     int lineOffset = LINE(5) + 30 * parkingSpot;
-    BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
-    BSP_LCD_SetBackColor(backgroundColor);
+    mutexLCD.lock();
+    BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-    BSP_LCD_DisplayStringAt(0, lineOffset, (uint8_t *)name, CENTER_MODE);
+    BSP_LCD_FillRect(0, lineOffset, BSP_LCD_GetXSize(), 30); 
+    mutexLCD.unlock();
 }
 
+
+
+// Deklarace a definice třídy Car
+class Car {
+public:
+    Car(const char *name, int parkingTime, uint32_t bgColor, Semafor &semafor) 
+        : car_name(name), parkTime(parkingTime), backgroundColor(bgColor), parkoviste(semafor) {}
+
+    void operate() {
+        while (true) {
+            auto waitTime = milliseconds(rand() % 5000 + 3000);
+            ThisThread::sleep_for(waitTime);
+
+            parkoviste.acquire();
+
+            int parkingSpot = acquireParkingSpot();
+            if (parkingSpot != -1) {
+                mutexLCD.lock();
+                display(car_name, parkingSpot);
+                mutexLCD.unlock();
+
+                ThisThread::sleep_for(parkTime * 1s);
+
+                mutexLCD.lock();
+                clearParkingSpot(parkingSpot);
+                mutexLCD.unlock();
+
+                ThisThread::sleep_for(3s); 
+
+                releaseParkingSpot(parkingSpot);
+            }
+
+            parkoviste.release();
+        }
+    }
+
+private:
+    const char *car_name;
+    int parkTime;
+    uint32_t backgroundColor;
+    Semafor &parkoviste;
+
+    void display(const char *name, int parkingSpot) {
+        int lineOffset = LINE(5) + 30 * parkingSpot;
+        BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
+        BSP_LCD_SetBackColor(backgroundColor);
+        BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+        BSP_LCD_DisplayStringAt(0, lineOffset, (uint8_t *)name, CENTER_MODE);
+    }
+};
+
+// Hlavní funkce
 int main() {
     srand((unsigned) time(NULL));
 
