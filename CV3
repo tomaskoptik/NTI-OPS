@@ -5,20 +5,17 @@
 
 using namespace std::chrono;
 
-// Deklarace globálních proměnných
 DigitalOut myLed(LED1);
 Mutex mutexLCD;
 Mutex mutexParking;
 std::stack<int> parkingSpots;
 
-// Inicializace parkovacích míst
 void initParkingSpots(int count) {
     for (int i = 0; i < count; ++i) {
         parkingSpots.push(i);
     }
 }
 
-// Deklarace a definice třídy Semafor
 class Semafor {
 public:
     Semafor(int count = 1) : slot(count) {}
@@ -32,7 +29,6 @@ private:
     Semaphore slot;
 };
 
-// Funkce pro správu parkovacích míst
 int acquireParkingSpot() {
     mutexParking.lock(); 
     if (parkingSpots.empty()) {
@@ -60,9 +56,6 @@ void clearParkingSpot(int parkingSpot) {
     mutexLCD.unlock();
 }
 
-
-
-// Deklarace a definice třídy Car
 class Car {
 public:
     Car(const char *name, int parkingTime, uint32_t bgColor, Semafor &semafor) 
@@ -126,8 +119,6 @@ void startCarThreads(Car cars[], Thread threads[], int numCars) {
     }
 }
 
-
-// Hlavní funkce
 int main() {
     
     initSystem();
