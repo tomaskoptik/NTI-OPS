@@ -111,17 +111,27 @@ private:
     }
 };
 
-// Hlavní funkce
-int main() {
+void initSystem() {
     srand((unsigned) time(NULL));
-
     BSP_LCD_Init();
     BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, LCD_FB_START_ADDRESS);
     BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
     BSP_LCD_Clear(LCD_COLOR_BLACK);
-
     initParkingSpots(4);
+}
 
+void startCarThreads(Car cars[], Thread threads[], int numCars) {
+    for (int i = 0; i < numCars; i++) {
+        threads[i].start([&cars, i]() { cars[i].operate(); });
+    }
+}
+
+
+// Hlavní funkce
+int main() {
+    
+    initSystem();
+    initParkingSpots(4);
     Semafor parkoviste(4);
     Car cars[] = {
         Car("CAR 1", 3, LCD_COLOR_RED, parkoviste),
@@ -134,9 +144,7 @@ int main() {
 
     Thread threads[6];
 
-    for (int i = 0; i < 6; i++) {
-        threads[i].start([&cars, i]() { cars[i].operate(); });
-    }
+    startCarThreads(cars, threads, 6);
 
     while (true) {
     }
