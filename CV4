@@ -1,0 +1,43 @@
+#include "mbed.h"
+#include "stm32746g_discovery_lcd.h"
+#include "stm32746g_discovery_ts.h"
+
+int main() {
+    TS_StateTypeDef TS_State;
+    uint16_t x, y;
+
+    BSP_LCD_Init();
+    BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, LCD_FB_START_ADDRESS);
+    BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
+    BSP_LCD_Clear(LCD_COLOR_BLACK);
+
+    // Inicializace dotykového senzoru
+    if (BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize()) != TS_OK) {
+        // Chyba při inicializaci
+        return 1; // Nebo jakákoli jiná chyba
+    }
+
+    while(1) {
+        BSP_TS_GetState(&TS_State);
+
+        if (TS_State.touchDetected) {
+            // Získání souřadnic prvního dotyku
+            x = TS_State.touchX[0];
+            y = TS_State.touchY[0];
+
+            // Rozdělení displeje na tři části
+            uint16_t widthThird = BSP_LCD_GetXSize() / 3;
+
+            if (x < widthThird) {
+                // Tlačítko 1
+                BSP_LCD_DisplayStringAt(0, LINE(1), (uint8_t *)"1", CENTER_MODE);
+            } else if (x < widthThird * 2) {
+                // Tlačítko 2
+                BSP_LCD_DisplayStringAt(0, LINE(1), (uint8_t *)"2", CENTER_MODE);
+            } else {
+                // Tlačítko 3
+                BSP_LCD_DisplayStringAt(0, LINE(1), (uint8_t *)"3", CENTER_MODE);
+            }
+        }
+    }
+}
