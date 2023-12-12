@@ -1,43 +1,151 @@
 #include "mbed.h"
 #include "stm32746g_discovery_lcd.h"
 #include "stm32746g_discovery_ts.h"
+#include <stdlib.h>
+#include <time.h>
+#define BUTTON_1 1
+#define BUTTON_2 2
+#define BUTTON_3 3
+#define BUTTON_1_X 30
+#define BUTTON_1_Y BSP_LCD_GetYSize() / 2 - 50
+#define BUTTON_2_X BSP_LCD_GetXSize() / 3 + 30
+#define BUTTON_2_Y BSP_LCD_GetYSize() / 2 - 50
+#define BUTTON_3_X 2 * (BSP_LCD_GetXSize() / 3) + 30
+#define BUTTON_3_Y BSP_LCD_GetYSize() / 2 - 50
+#define RECT_SIZE 100
+Ticker ticker;
+EventFlags eventFlags;
+int milliseconds = 10000;
+Thread actionThread;
+Thread touchScreen;
+Watchdog &watchdog = Watchdog::get_instance();
+int *randomNumbers = (int *)malloc(sizeof(int) * 3);
+void myShuffle(int *array, int n) {
+    if (n > 1) {
+    srand((unsigned int)time(NULL));
+    int i;
+    for (i = n - 1; i > 0; i--) {
+        int j = rand() % (i + 1);
+        int t = array[i];
+        array[i] = array[j];
+        array[j] = t;
+    }   
+    }
+}
 
-int main() {
+void explode() {
+    myShuffle(randomNumbers, 3);
+    ticker.detach();
+    BSP_LCD_Clear(LCD_COLOR_RED);
+    watchdog.start(5000);
+}
+
+void resetTimer() {
+    myShuffle(randomNumbers, 3);
+    milliseconds = 10000;
+    watchdog.start(15000);
+}
+
+void success() {
+    ticker.detach();
+    while (true) {
+    watchdog.kick();
+}
+
+}
+
+void action() {
+    uint32_t flagsRead = 0;
+    while (true) {
+        flagsRead = eventFlags.wait_any(BUTTON_1 | BUTTON_2 | BUTTON_3);
+        switch (flagsRead) {
+            case BUTTON_1:
+                explode();
+                break;
+            case BUTTON_2:
+                resetTimer();
+                break;
+            case BUTTON_3:
+                success();
+                break;
+        }
+    }
+}
+
+void fillArray(int *array) {
+    array[0] = BUTTON_1;
+    array[1] = BUTTON_2;
+    array[2] = BUTTON_3;
+}
+
+void readTouchScreen() {
     TS_StateTypeDef TS_State;
     uint16_t x, y;
-
-    BSP_LCD_Init();
-    BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, LCD_FB_START_ADDRESS);
-    BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
-    BSP_LCD_Clear(LCD_COLOR_BLACK);
-
-    // Inicializace dotykového senzoru
-    if (BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize()) != TS_OK) {
-        // Chyba při inicializaci
-        return 1; // Nebo jakákoli jiná chyba
-    }
-
-    while(1) {
+    uint8_t status = BSP_TS_Init(BSP_LCD_GetXSize(), BSP_LCD_GetYSize());
+    while (true) {
         BSP_TS_GetState(&TS_State);
-
-        if (TS_State.touchDetected) {
-            // Získání souřadnic prvního dotyku
-            x = TS_State.touchX[0];
-            y = TS_State.touchY[0];
-
-            // Rozdělení displeje na tři části
-            uint16_t widthThird = BSP_LCD_GetXSize() / 3;
-
-            if (x < widthThird) {
-                // Tlačítko 1
-                BSP_LCD_DisplayStringAt(0, LINE(1), (uint8_t *)"1", CENTER_MODE);
-            } else if (x < widthThird * 2) {
-                // Tlačítko 2
-                BSP_LCD_DisplayStringAt(0, LINE(1), (uint8_t *)"2", CENTER_MODE);
-            } else {
-                // Tlačítko 3
-                BSP_LCD_DisplayStringAt(0, LINE(1), (uint8_t *)"3", CENTER_MODE);
+        static time_t lastTouchTime = 0;
+        time_t currentTime = time(NULL);
+        if (currentTime - lastTouchTime >= 1) {
+            if (TS_State.touchDetected) {
+                if (TS_State.touchX[0] >= BUTTON_1_X &&
+                    TS_State.touchX[0] <= BUTTON_1_X + RECT_SIZE &&
+                    TS_State.touchY[0] >= BUTTON_1_Y &&
+                    TS_State.touchY[0] <= BUTTON_1_Y + RECT_SIZE) {
+                    eventFlags.set(randomNumbers[0]);
+                } else if (TS_State.touchX[0] >= BUTTON_2_X &&
+                           TS_State.touchX[0] <= BUTTON_2_X + RECT_SIZE &&
+                           TS_State.touchY[0] >= BUTTON_2_Y &&
+                           TS_State.touchY[0] <= BUTTON_2_Y + RECT_SIZE) {
+                    eventFlags.set(randomNumbers[1]);
+                } else if (TS_State.touchX[0] >= BUTTON_3_X &&
+                           TS_State.touchX[0] <= BUTTON_3_X + RECT_SIZE &&
+                           TS_State.touchY[0] >= BUTTON_3_Y &&
+                           TS_State.touchY[0] <= BUTTON_3_Y + RECT_SIZE) {
+                    eventFlags.set(randomNumbers[2]);
+                }
+                lastTouchTime = currentTime;
             }
         }
     }
+}
+
+void displayTime() {
+    if (milliseconds > 0) {
+        milliseconds -= 100;
+        int centiseconds = milliseconds / 10;
+        char secondsStr[128];
+        snprintf(secondsStr, sizeof(secondsStr), "%d.%01d seconds",
+        centiseconds / 100, (centiseconds / 10) % 10);
+        BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+        BSP_LCD_DisplayStringAt(0, 1, (uint8_t *)secondsStr, CENTER_MODE);
+    } else if (milliseconds == 0) {
+        BSP_LCD_Clear(LCD_COLOR_RED);
+    } else {
+        ticker.detach();
+    }
+}
+void bspLcdInit() {
+    BSP_LCD_Init();
+    BSP_LCD_LayerDefaultInit(LTDC_ACTIVE_LAYER, LCD_FB_START_ADDRESS);
+    BSP_LCD_SelectLayer(LTDC_ACTIVE_LAYER);
+    BSP_LCD_SetFont(&LCD_DEFAULT_FONT);
+    BSP_LCD_Clear(LCD_COLOR_WHITE);
+}
+void fillButtons() {
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X, BUTTON_1_Y, RECT_SIZE, RECT_SIZE);
+    BSP_LCD_FillRect(BUTTON_2_X, BUTTON_2_Y, RECT_SIZE, RECT_SIZE);
+    BSP_LCD_FillRect(BUTTON_3_X, BUTTON_3_Y, RECT_SIZE, RECT_SIZE);
+}
+
+int main() {
+    fillArray(randomNumbers);
+    myShuffle(randomNumbers, 3);
+    bspLcdInit();
+    fillButtons();
+    ticker.attach(&displayTime, 100ms);
+    watchdog.start(15000);
+    actionThread.start(callback(action));
+    touchScreen.start(callback(readTouchScreen));
 }
