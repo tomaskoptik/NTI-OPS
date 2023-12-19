@@ -1,22 +1,10 @@
-#include "mbed.h"
-#include "stm32746g_discovery_lcd.h"
-#include "stm32746g_discovery_ts.h"
-#include <stdlib.h>
-#include <time.h>
-#define BUTTON_1 1
-#define BUTTON_2 2
-#define BUTTON_3 3
-#define BUTTON_1_X 30
-#define BUTTON_1_Y BSP_LCD_GetYSize() / 2 - 50
-#define BUTTON_2_X BSP_LCD_GetXSize() / 3 + 30
-#define BUTTON_2_Y BSP_LCD_GetYSize() / 2 - 50
-#define BUTTON_3_X 2 * (BSP_LCD_GetXSize() / 3) + 30
-#define BUTTON_3_Y BSP_LCD_GetYSize() / 2 - 50
-#define RECT_SIZE 100
+#include "main.h"
 Ticker ticker;
 EventFlags eventFlags;
 int milliseconds = 10000;
-Thread actionThread;
+Thread actionThread1;
+Thread actionThread2;
+Thread actionThread3;
 Thread touchScreen;
 Watchdog &watchdog = Watchdog::get_instance();
 int *randomNumbers = (int *)malloc(sizeof(int) * 3);
@@ -54,23 +42,27 @@ void success() {
 
 }
 
-void action() {
-    uint32_t flagsRead = 0;
+void button1Action() {
     while (true) {
-        flagsRead = eventFlags.wait_any(BUTTON_1 | BUTTON_2 | BUTTON_3);
-        switch (flagsRead) {
-            case BUTTON_1:
-                explode();
-                break;
-            case BUTTON_2:
-                resetTimer();
-                break;
-            case BUTTON_3:
-                success();
-                break;
-        }
+        eventFlags.wait_any(BUTTON_1);
+        explode();
     }
 }
+
+void button2Action() {
+    while (true) {
+        eventFlags.wait_any(BUTTON_2);
+        resetTimer();
+    }
+}
+
+void button3Action() {
+    while (true) {
+        eventFlags.wait_any(BUTTON_3);
+        success();
+    }
+}
+
 
 void fillArray(int *array) {
     array[0] = BUTTON_1;
@@ -207,6 +199,52 @@ int main() {
     fillButtons();
     ticker.attach(&displayTime, 100ms);
     watchdog.start(15000);
-    actionThread.start(callback(action));
+    actionThread1.start(button1Action);
+    actionThread2.start(button2Action);
+    actionThread3.start(button3Action);
     touchScreen.start(callback(readTouchScreen));
 }
+
+--------
+main.h
+
+
+
+#ifndef MAIN_H
+#define MAIN_H
+
+#include "mbed.h"
+#include "stm32746g_discovery_lcd.h"
+#include "stm32746g_discovery_ts.h"
+#include <stdlib.h>
+#include <time.h>
+
+#define BUTTON_1 1
+#define BUTTON_2 2
+#define BUTTON_3 3
+#define BUTTON_1_X 30
+#define BUTTON_1_Y (BSP_LCD_GetYSize() / 2 - 50)
+#define BUTTON_2_X (BSP_LCD_GetXSize() / 3 + 30)
+#define BUTTON_2_Y (BSP_LCD_GetYSize() / 2 - 50)
+#define BUTTON_3_X (2 * (BSP_LCD_GetXSize() / 3) + 30)
+#define BUTTON_3_Y (BSP_LCD_GetYSize() / 2 - 50)
+#define RECT_SIZE 100
+
+extern int milliseconds;
+extern Watchdog &watchdog;
+extern int *randomNumbers;
+
+void myShuffle(int *array, int n);
+void explode();
+void resetTimer();
+void success();
+void button1Action();
+void button2Action();
+void button3Action();
+void fillArray(int *array);
+void readTouchScreen();
+void displayTime();
+void bspLcdInit();
+void fillButtons();
+
+#endif
