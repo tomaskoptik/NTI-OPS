@@ -133,11 +133,72 @@ void bspLcdInit() {
     BSP_LCD_Clear(LCD_COLOR_WHITE);
 }
 void fillButtons() {
-    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
     BSP_LCD_FillRect(BUTTON_1_X, BUTTON_1_Y, RECT_SIZE, RECT_SIZE);
     BSP_LCD_FillRect(BUTTON_2_X, BUTTON_2_Y, RECT_SIZE, RECT_SIZE);
     BSP_LCD_FillRect(BUTTON_3_X, BUTTON_3_Y, RECT_SIZE, RECT_SIZE);
+
+    int textRectWidth = 20;
+    int textRectHeight = 20;
+    int text_offset_x = 22;
+    int text_offset_y = 23;  
+
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X + text_offset_x, BUTTON_1_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_2_X + text_offset_x, BUTTON_2_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_3_X + text_offset_x, BUTTON_3_Y + text_offset_y, textRectWidth, textRectHeight);
+
+    text_offset_x = 57;
+    text_offset_y = 23;  
+
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X + text_offset_x, BUTTON_1_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_2_X + text_offset_x, BUTTON_2_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_3_X + text_offset_x, BUTTON_3_Y + text_offset_y, textRectWidth, textRectHeight);
+
+    textRectWidth = 17;
+    textRectHeight = 30;
+    text_offset_x = 40;
+    text_offset_y = 40;  
+
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X + text_offset_x, BUTTON_1_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_2_X + text_offset_x, BUTTON_2_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_3_X + text_offset_x, BUTTON_3_Y + text_offset_y, textRectWidth, textRectHeight);
+
+    textRectWidth = 34;
+    textRectHeight = 17;
+    text_offset_x = 31;
+    text_offset_y = 52; 
+
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X + text_offset_x, BUTTON_1_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_2_X + text_offset_x, BUTTON_2_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_3_X + text_offset_x, BUTTON_3_Y + text_offset_y, textRectWidth, textRectHeight);
+
+    textRectWidth = 10;
+    textRectHeight = 20;
+    text_offset_x = 31;
+    text_offset_y = 60; 
+
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X + text_offset_x, BUTTON_1_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_2_X + text_offset_x, BUTTON_2_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_3_X + text_offset_x, BUTTON_3_Y + text_offset_y, textRectWidth, textRectHeight);
+
+    textRectWidth = 10;
+    textRectHeight = 20;
+    text_offset_x = 55;
+    text_offset_y = 60; 
+
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(BUTTON_1_X + text_offset_x, BUTTON_1_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_2_X + text_offset_x, BUTTON_2_Y + text_offset_y, textRectWidth, textRectHeight);
+    BSP_LCD_FillRect(BUTTON_3_X + text_offset_x, BUTTON_3_Y + text_offset_y, textRectWidth, textRectHeight);
+
 }
+
+
 
 int main() {
     fillArray(randomNumbers);
